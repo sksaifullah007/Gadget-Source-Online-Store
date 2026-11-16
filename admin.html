@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gadget Source - Admin Panel</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:20px;
+  font-family:Arial,sans-serif;
+  background:#f1f5f9;
+  color:#172033;
+}
+.container{max-width:950px;margin:auto}
+h1{text-align:center;color:#172554}
+.card{
+  background:white;
+  padding:20px;
+  margin:18px 0;
+  border-radius:12px;
+  box-shadow:0 3px 12px #00000010;
+}
+input,textarea,button{
+  width:100%;
+  padding:12px;
+  margin:7px 0;
+  border:1px solid #cbd5e1;
+  border-radius:7px;
+  font-size:15px;
+}
+textarea{min-height:85px}
+button{
+  background:#1d4ed8;
+  color:white;
+  border:0;
+  cursor:pointer;
+  font-weight:bold;
+}
+button:hover{background:#1e40af}
+.delete{background:#dc2626}
+.edit{background:#15803d}
+.hidden{display:none}
+.product{
+  border:1px solid #e2e8f0;
+  padding:14px;
+  margin:12px 0;
+  border-radius:9px;
+}
+.product img{
+  width:90px;
+  height:90px;
+  object-fit:cover;
+  border-radius:7px;
+}
+.actions{display:flex;gap:8px}
+.actions button{flex:1}
+#message{font-weight:bold}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Gadget Source Admin</h1>
+
+<!-- LOGIN -->
+<div class="card" id="loginBox">
+  <h2>Admin Login</h2>
+  <input type="email" id="email" placeholder="Admin Email">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <p id="loginMessage"></p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
+
+  <div class="card">
+    <h2>Admin Dashboard</h2>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="card">
+    <h2 id="formTitle">Add New Product</h2>
+
+    <form id="productForm">
+      <input type="hidden" id="productId">
+
+      <input id="name" placeholder="Product Name" required>
+      <input id="brand" placeholder="Brand" required>
+      <input id="model" placeholder="Model">
+
+      <textarea id="description" placeholder="Product Description"></textarea>
+
+      <input id="price" type="number" step="0.01" placeholder="Price" required>
+      <input id="old_price" type="number" step="0.01" placeholder="Old Price">
+      <input id="stock" type="number" placeholder="Stock" required>
+
+      <input id="category_id" placeholder="Category ID">
+      <input id="image" type="url" placeholder="Product Image URL">
+
+      <button type="submit">Save Product</button>
+      <button type="button" class="delete" onclick="resetForm()">Cancel Edit</button>
+    </form>
+
+    <p id="message"></p>
+  </div>
+
+  <div class="card">
+    <h2>All Products</h2>
+    <div id="productList">Loading...</div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const SUPABASE_URL =
+"https://ojmzpntgfbjbflhlaxsb.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_pNVz46UuV7PxHo1JcQlvJg_ICVwLP9I";
+
+const ADMIN_UID =
+"78c6486e-b3c2-4a7b-8068-3493775a3ea0";
+
+const db = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+const loginBox = document.getElementById("loginBox");
+const dashboard = document.getElementById("dashboard");
+
+function showMessage(text,color="green"){
+  const el=document.getElementById("message");
+  el.textContent=text;
+  el.style.color=color;
+}
+
+async function verifyAdmin(){
+  const {data,error}=await db.auth.getUser();
+
+  if(error || !data.user){
+    loginBox.classList.remove("hidden");
+    dashboard.classList.add("hidden");
+    return false;
+  }
+
+  if(data.user.id !== ADMIN_UID){
+    await db.auth.signOut();
+    document.getElementById("loginMessage").textContent =
+      "এই অ্যাকাউন্টের Admin অনুমতি নেই।";
+    return false;
+  }
+
+  loginBox.classList.add("hidden");
+  dashboard.classList.remove("hidden");
+  await loadProducts();
+  return true;
+}
+
+async function login(){
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+
+  const msg=document.getElementById("loginMessage");
+  msg.textContent="Logging in...";
+
+  const {error}=await db.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if(error){
+    msg.textContent=error.message;
+    return;
+  }
+
+  const ok=await verifyAdmin();
+
+  if(ok) msg.textContent="";
+}
+
+async function logout(){
+  await db.auth.signOut();
+  loginBox.classList.remove("hidden");
+  dashboard.classList.add("hidden");
+  document.getElementById("password").value="";
+}
+
+function resetForm(){
+  document.getElementById("productForm").reset();
+  document.getElementById("productId").value="";
+  document.getElementById("formTitle").textContent="Add New Pr
