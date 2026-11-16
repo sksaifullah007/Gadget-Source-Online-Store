@@ -2,192 +2,249 @@
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gadget & Source</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gadget & Source | Online Store</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,sans-serif;background:#f4f6fa;color:#172033}
-header{background:#101827;color:white;padding:16px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.logo{font-size:23px;font-weight:bold}
-.logo span{color:#60a5fa}
-button{background:#2563eb;color:white;border:0;padding:11px 16px;border-radius:8px;cursor:pointer}
-.hero{background:linear-gradient(120deg,#101827,#1d4ed8);color:white;padding:55px 6%;text-align:center}
-.hero h1{font-size:34px;margin:0 0 12px}
-.hero p{line-height:1.7}
-main{max-width:1150px;margin:25px auto;padding:0 15px}
-h2{margin-top:28px}
-input,select{padding:12px;border:1px solid #ccd2dc;border-radius:8px;width:100%;margin:6px 0}
-.categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
-.category{background:white;border:1px solid #e2e8f0;padding:13px;border-radius:9px;text-align:center;cursor:pointer}
-.category.active{background:#dbeafe;border-color:#2563eb}
-.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:18px}
-.card{background:white;border-radius:12px;padding:14px;box-shadow:0 2px 10px #0000000c}
-.pic{height:135px;background:#eef2ff;border-radius:9px;display:grid;place-items:center;font-size:45px}
-.card h3{font-size:17px}
-.price{font-weight:bold;color:#2563eb}
-.card button{width:100%;margin-top:7px}
-.panel{background:white;padding:17px;border-radius:12px;margin-top:25px}
-.hidden{display:none}
-footer{text-align:center;background:#101827;color:white;padding:25px;margin-top:35px}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
+header{background:#101c35;color:white;padding:18px;text-align:center}
+header h1{margin:0;font-size:27px}
+header p{margin:7px 0 0;color:#cbd5e1}
+.hero{background:#173b70;color:white;text-align:center;padding:35px 15px}
+.hero h2{font-size:26px;margin:0 0 10px}
+.search{display:block;width:92%;max-width:550px;margin:18px auto;padding:13px;border:1px solid #ddd;border-radius:9px;font-size:16px}
+.categories{display:flex;gap:8px;overflow-x:auto;padding:12px}
+.categories button{white-space:nowrap;border:0;background:#e2e8f0;padding:10px 14px;border-radius:20px;cursor:pointer}
+.categories button.active{background:#173b70;color:white}
+.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:13px;padding:14px}
+.card{background:white;border-radius:12px;padding:12px;box-shadow:0 2px 9px #0001}
+.card img{width:100%;height:145px;object-fit:contain}
+.card h3{font-size:15px;min-height:35px}
+.price{font-weight:bold;color:#087443}
+.card button,.checkout{width:100%;padding:11px;border:0;border-radius:7px;background:#173b70;color:white;margin-top:8px;cursor:pointer}
+.cart{background:white;margin:14px;padding:15px;border-radius:12px}
+#status{text-align:center;padding:18px;color:#475569}
+footer{text-align:center;background:#101c35;color:white;padding:20px;margin-top:25px}
 </style>
 </head>
 <body>
+
 <header>
-  <div class="logo">Gadget <span>&</span> Source</div>
-  <div class="actions">
-    <button onclick="showCart()">🛒 Cart (<span id="count">0</span>)</button>
-    <button onclick="showAdmin()">Admin</button>
-  </div>
+<h1>Gadget & Source</h1>
+<p>Your Trusted Gadget & Accessories Store</p>
 </header>
 
 <section class="hero">
-  <h1>Welcome to Gadget & Source</h1>
-  <p>Your Trusted Online Gadget Store</p>
-  <p>অরিজিনাল IT Accessories ও Gadgets কিনুন সহজেই</p>
-  <button onclick="document.getElementById('products').scrollIntoView()">Shop Now</button>
+<h2>Welcome to Gadget & Source</h2>
+<p>Find Your Favourite Gadgets & Accessories</p>
 </section>
 
-<main>
-  <h2>পণ্য খুঁজুন</h2>
-  <input id="search" placeholder="পণ্যের নাম লিখে খুঁজুন..." oninput="render()">
+<input id="search" class="search" placeholder="Search products..." oninput="renderProducts()">
 
-  <h2>Product Categories</h2>
-  <div class="categories" id="categories"></div>
+<div class="categories" id="categories"></div>
 
-  <h2 id="productHeading">Our Products</h2>
-  <div class="products" id="products"></div>
+<div id="status">Connecting to store...</div>
+<main class="products" id="products"></main>
 
-  <section class="panel hidden" id="cartPanel">
-    <h2>আপনার Cart</h2>
-    <div id="cartItems"></div>
-    <button onclick="checkout()">WhatsApp-এ অর্ডার করুন</button>
-    <button onclick="closeCart()" style="background:#64748b">বন্ধ করুন</button>
-  </section>
-
-  <section class="panel hidden" id="adminPanel">
-    <h2>Admin — Add Product</h2>
-    <p>নতুন পণ্য যোগ করতে নিচের তথ্য দিন।</p>
-    <input id="pname" placeholder="পণ্যের নাম">
-    <select id="pcat"></select>
-    <input id="pprice" placeholder="দাম (যেমন: 1500 টাকা)">
-    <input id="pimage" placeholder="ছবির URL (ঐচ্ছিক)">
-    <button onclick="addProduct()">পণ্য যোগ করুন</button>
-    <button onclick="hideAdmin()" style="background:#64748b">বন্ধ করুন</button>
-    <p id="adminMessage"></p>
-    <div id="adminProducts"></div>
-  </section>
-</main>
+<section class="cart">
+<h2>🛒 Shopping Cart</h2>
+<div id="cartItems">Your cart is empty.</div>
+<h3 id="total">Total: ৳0</h3>
+<button class="checkout" onclick="checkout()">Order on WhatsApp</button>
+</section>
 
 <footer>
-  <h3>Gadget & Source</h3>
-  <p>Trusted IT Accessories & Gadget Store</p>
-  <p>WhatsApp: 01405345702</p>
+<p>Gadget & Source</p>
+<p>WhatsApp: +8801405345702</p>
 </footer>
 
 <script>
-const categories=[
-"UGREEN Hub & Adapter","USB-C Cable","Charger & Power Bank",
-"SSD, HDD & Enclosure","Mouse & Keyboard","Monitor & Accessories",
-"Laptop & MacBook Accessories","iPhone & iPad Accessories",
-"HDMI & Display Cable","LAN & Networking","Earphone & Headphone",
-"USB Flash Drive & Memory Card","Webcam & Microphone",
-"Computer Accessories","Gaming Accessories"
+const SUPABASE_URL = "https://ojmzpntgfbjbflhlaxsb.supabase.co";
+
+// এখানে নিজের Publishable Key বসাবে। কাউকে পাঠাবে না।
+const SUPABASE_KEY = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+
+const categories = [
+"All Products",
+"UGREEN Hub & Adapter",
+"USB-C Cable",
+"Charger & Power Bank",
+"SSD, HDD & Enclosure",
+"Mouse & Keyboard",
+"Monitor & Accessories",
+"Laptop & MacBook Accessories",
+"iPhone & iPad Accessories",
+"HDMI & Display Cable",
+"LAN & Networking",
+"Earphone & Headphone",
+"USB Flash Drive & Memory Card",
+"Webcam & Microphone",
+"Computer Accessories",
+"Gaming Accessories"
 ];
 
-let products=JSON.parse(localStorage.getItem("gs_products")||"null")||[
-{name:"UGREEN USB-C Hub",cat:"UGREEN Hub & Adapter",price:"দাম জানতে যোগাযোগ করুন",image:""},
-{name:"USB-C Cable",cat:"USB-C Cable",price:"দাম জানতে যোগাযোগ করুন",image:""},
-{name:"Fast Charger",cat:"Charger & Power Bank",price:"দাম জানতে যোগাযোগ করুন",image:""},
-{name:"SSD Enclosure",cat:"SSD, HDD & Enclosure",price:"দাম জানতে যোগাযোগ করুন",image:""},
-{name:"Wireless Mouse",cat:"Mouse & Keyboard",price:"দাম জানতে যোগাযোগ করুন",image:""},
-{name:"HDMI Cable",cat:"HDMI & Display Cable",price:"দাম জানতে যোগাযোগ করুন",image:""}
-];
+let db = null;
+let allProducts = [];
+let cart = [];
+let selectedCategory = "All Products";
 
-let cart=JSON.parse(localStorage.getItem("gs_cart")||"[]");
-let activeCategory="সব পণ্য";
+function setupCategories(){
+ const box = document.getElementById("categories");
+ box.innerHTML = "";
+ categories.forEach(category=>{
+  const btn = document.createElement("button");
+  btn.textContent = category;
+  if(category === selectedCategory) btn.classList.add("active");
+  btn.onclick = ()=>{
+   selectedCategory = category;
+   setupCategories();
+   renderProducts();
+  };
+  box.appendChild(btn);
+ });
+}
 
-function save(){
- localStorage.setItem("gs_products",JSON.stringify(products));
- localStorage.setItem("gs_cart",JSON.stringify(cart));
-}
-function setup(){
- document.getElementById("categories").innerHTML=
- ["সব পণ্য",...categories].map(c=>
- `<div class="category ${activeCategory===c?'active':''}" onclick="selectCategory('${c}')">${c}</div>`
- ).join("");
- document.getElementById("pcat").innerHTML=categories.map(c=>`<option>${c}</option>`).join("");
- render();
- updateCount();
-}
-function selectCategory(c){
- activeCategory=c;
- setup();
-}
-function render(){
- const q=document.getElementById("search").value.toLowerCase();
- let list=products.filter(p=>
- (activeCategory==="সব পণ্য"||p.cat===activeCategory)&&
- (p.name.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q))
- );
- document.getElementById("products").innerHTML=list.map(p=>{
- let i=products.indexOf(p);
- return `<div class="card">
- <div class="pic">${p.image?`<img src="${p.image}" style="width:100%;height:100%;object-fit:contain">`:"📦"}</div>
- <h3>${p.name}</h3><small>${p.cat}</small>
- <p class="price">${p.price}</p>
- <button onclick="addCart(${i})">কার্টে যোগ করুন</button>
- </div>`;
- }).join("")||"<p>কোনো পণ্য পাওয়া যায়নি।</p>";
- document.getElementById("productHeading").textContent=activeCategory==="সব পণ্য"?"Our Products":activeCategory;
-}
-function addCart(i){
- cart.push(products[i]);save();updateCount();
- alert("পণ্যটি Cart-এ যোগ হয়েছে");
-}
-function updateCount(){document.getElementById("count").textContent=cart.length}
-function showCart(){
- document.getElementById("cartPanel").classList.remove("hidden");
- document.getElementById("cartItems").innerHTML=cart.map((p,i)=>
- `<p>${i+1}. ${p.name} — ${p.price} <button onclick="removeCart(${i})">বাদ দিন</button></p>`
- ).join("")||"কার্ট খালি।";
-}
-function removeCart(i){cart.splice(i,1);save();updateCount();showCart()}
-function closeCart(){document.getElementById("cartPanel").classList.add("hidden")}
-function checkout(){
- if(!cart.length){alert("আপনার Cart খালি");return}
- let message="আসসালামু আলাইকুম, আমি অর্ডার করতে চাই:\n"+
- cart.map((p,i)=>(i+1)+". "+p.name+" - "+p.price).join("\n");
- window.open("https://wa.me/8801405345702?text="+encodeURIComponent(message),"_blank");
-}
-function showAdmin(){
- document.getElementById("adminPanel").classList.remove("hidden");
- showAdminProducts();
-}
-function hideAdmin(){document.getElementById("adminPanel").classList.add("hidden")}
-function addProduct(){
- let name=document.getElementById("pname").value.trim();
- let cat=document.getElementById("pcat").value;
- let price=document.getElementById("pprice").value.trim()||"দাম জানতে যোগাযোগ করুন";
- let image=document.getElementById("pimage").value.trim();
- if(!name){alert("পণ্যের নাম লিখুন");return}
- products.push({name,cat,price,image});
- save();render();showAdminProducts();
- document.getElementById("adminMessage").textContent="পণ্য যোগ হয়েছে!";
- document.getElementById("pname").value="";
- document.getElementById("pprice").value="";
- document.getElementById("pimage").value="";
-}
-function showAdminProducts(){
- document.getElementById("adminProducts").innerHTML="<h3>পণ্যের তালিকা</h3>"+
- products.map((p,i)=>`<p>${p.name} <button onclick="deleteProduct(${i})">Delete</button></p>`).join("");
-}
-function deleteProduct(i){
- if(confirm("পণ্যটি মুছে ফেলবেন?")){
- products.splice(i,1);save();render();showAdminProducts();
+async function loadProducts(){
+ const status = document.getElementById("status");
+
+ if(SUPABASE_KEY === "PASTE_YOUR_SB_PUBLISHABLE_KEY_HERE"){
+  status.textContent = "প্রথমে Supabase Publishable Key যুক্ত করতে হবে।";
+  return;
+ }
+
+ try{
+  db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+  const {data,error} = await db
+   .from("products")
+   .select("id,name,category,price,image_url,description,stock,is_active")
+   .eq("is_active",true)
+   .order("created_at",{ascending:false});
+
+  if(error) throw error;
+
+  allProducts = data || [];
+  status.textContent = allProducts.length
+   ? "Products loaded successfully"
+   : "এখনো কোনো পণ্য যোগ করা হয়নি।";
+
+  renderProducts();
+ }catch(error){
+  status.textContent = "পণ্য লোড হয়নি: " + error.message;
  }
 }
-setup();
+
+function renderProducts(){
+ const box = document.getElementById("products");
+ const search = document.getElementById("search").value.toLowerCase();
+
+ box.innerHTML = "";
+
+ const filtered = allProducts.filter(p=>{
+  const matchesSearch = (p.name || "").toLowerCase().includes(search);
+  const matchesCategory = selectedCategory === "All Products" ||
+   p.category === selectedCategory;
+  return matchesSearch && matchesCategory;
+ });
+
+ if(filtered.length === 0){
+  box.innerHTML = "<p>কোনো পণ্য পাওয়া যায়নি।</p>";
+  return;
+ }
+
+ filtered.forEach(p=>{
+  const card = document.createElement("div");
+  card.className = "card";
+
+  const img = document.createElement("img");
+  img.src = p.image_url || "";
+  img.alt = p.name || "Product";
+  img.onerror = ()=>{img.style.display="none";};
+
+  const name = document.createElement("h3");
+  name.textContent = p.name || "Product";
+
+  const price = document.createElement("p");
+  price.className = "price";
+  price.textContent = "৳" + Number(p.price || 0).toLocaleString("en-US");
+
+  const description = document.createElement("p");
+  description.textContent = p.description || "";
+
+  const button = document.createElement("button");
+  button.textContent = "Add to Cart";
+  button.onclick = ()=>addToCart(p.id);
+
+  card.append(img,name,price,description,button);
+  box.appendChild(card);
+ });
+}
+
+function addToCart(id){
+ const product = allProducts.find(p=>p.id===id);
+ if(!product) return;
+
+ const existing = cart.find(item=>item.id===id);
+ if(existing) existing.quantity++;
+ else cart.push({...product,quantity:1});
+
+ renderCart();
+}
+
+function renderCart(){
+ const box = document.getElementById("cartItems");
+ const totalBox = document.getElementById("total");
+
+ if(cart.length === 0){
+  box.textContent = "Your cart is empty.";
+  totalBox.textContent = "Total: ৳0";
+  return;
+ }
+
+ box.innerHTML = "";
+ let total = 0;
+
+ cart.forEach(item=>{
+  total += Number(item.price || 0) * item.quantity;
+
+  const row = document.createElement("p");
+  row.textContent = item.name + " × " + item.quantity +
+   " = ৳" + (Number(item.price || 0)*item.quantity);
+  box.appendChild(row);
+ });
+
+ totalBox.textContent = "Total: ৳" + total.toLocaleString("en-US");
+}
+
+function checkout(){
+ if(cart.length === 0){
+  alert("আপনার Cart খালি!");
+  return;
+ }
+
+ let message = "Assalamu Alaikum, I want to order:\n\n";
+ let total = 0;
+
+ cart.forEach(item=>{
+  const amount = Number(item.price || 0)*item.quantity;
+  total += amount;
+  message += item.name + " x " + item.quantity +
+   " = ৳" + amount + "\n";
+ });
+
+ message += "\nTotal: ৳" + total + "\n";
+ message += "\nPlease confirm my order.";
+
+ const url = "https://wa.me/8801405345702?text=" +
+  encodeURIComponent(message);
+
+ window.open(url,"_blank");
+}
+
+setupCategories();
+loadProducts();
 </script>
+
 </body>
 </html>
